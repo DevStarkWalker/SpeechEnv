@@ -20,22 +20,21 @@ This project began as a personal endeavor to create a more intelligent and effic
 1. Clone the repository:
    ```bash
    git clone https://github.com/yourusername/voice-assistant.git
-Install dependencies:
-bash
-Copy code
-pip install -r requirements.txt
-Set up API keys for OpenAI and other required services.
-Usage
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+
+3. Set up API keys for OpenAI and other required services.
+   
+4. Usage
 Run the voice assistant:
+   ```bash
+   python main.py
 
-bash
-Copy code
-python main.py
-Speak your commands, and the assistant will respond based on the context.
+## Future Goals
+- Further refine the assistant's ability to aid in software development.
+- Implement integration with IDEs like VSCode for real-time code assistance.
+- Add more task automation capabilities to improve efficiency.
 
-Future Goals
-Further refine the assistant's ability to aid in software development.
-Implement integration with IDEs like VSCode for real-time code assistance.
-Add more task automation capabilities to improve efficiency.
-Contribution
+## Contribution
 Feel free to submit issues or pull requests to improve the assistant!
