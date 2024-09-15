@@ -52,7 +52,7 @@ def recognize_speech_from_mic():
         print(f"You said: {command}")
         return command
     except sr.UnknownValueError:
-        print("Sorry, I did not understand that.")
+        print("Sorry, I did not quite understand that.")
     except sr.RequestError:
         print("Sorry, the speech service is unavailable.")
     return None
