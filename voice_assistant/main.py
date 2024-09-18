@@ -23,7 +23,7 @@ for voice in voices:
 api_key = os.getenv('OPENAI_API_KEY')
 print(f"Loaded API Key: {os.getenv('OPENAI_API_KEY')}")  # Add this line
 if not os.getenv('OPENAI_API_KEY'):
-    api_key= "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"
+    print(f"No API Key found")
 
 # Initialize OpenAI client
 client = OpenAI(api_key=api_key)
