@@ -2,23 +2,19 @@ from __future__ import print_function
 import os
 import openai
 import requests
-import smtplib
-import time
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import sib_api_v3_sdk
-from sib_api_v3_sdk.rest import ApiException
 from dotenv import load_dotenv
 from pprint import pprint
+from sib_api_v3_sdk.rest import ApiException
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Get API keys and email credentials
+# Get API keys and email credentials from environment
 api_key = os.getenv("OPENAI_API_KEY")
 news_api_key = os.getenv("NEWS_API_KEY")
 email_user = os.getenv("EMAIL_USER")  # Brevo email user
-email_pass = os.getenv("BREVO_API_KEY")  # Brevo API key used as the password for SMTP and API authentication
+brevo_api_key = os.getenv("BREVO_API_KEY")  # Brevo API key
 
 # Predefined categories for the newsletter
 CATEGORIES = ["technology", "business", "health", "sports", "general", "science"]
@@ -33,22 +29,25 @@ CATEGORY_LIMITS = {
     "science": 5,
 }
 
+# Configure Brevo API key authorization
+configuration = sib_api_v3_sdk.Configuration()
+configuration.api_key['api-key'] = brevo_api_key
+
+# Create an instance of the API class
+api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(configuration))
+
 # Function to fetch top news headlines for a given category with a limit
 def get_news_headlines(category="general", country="us", limit=10):
     url = f"https://newsapi.org/v2/top-headlines?category={category}&country={country}&apiKey={news_api_key}"
     response = requests.get(url)
     
-    print(f"Response for {category}: {response.status_code}")
-    print(response.json())  # Debugging: print response structure
-
     if response.status_code == 200:
         news_data = response.json()
         articles = news_data.get("articles", [])
         headlines = []
-        for i, article in enumerate(articles[:limit]):  # Limit the number of articles
+        for i, article in enumerate(articles[:limit]):
             title = article.get("title")
             url = article.get("url")
-            
             if title and url:
                 headlines.append(f"- [{title}]({url})")
         return headlines
@@ -63,38 +62,30 @@ def create_markdown_newsletter():
         limit = CATEGORY_LIMITS.get(category, 10)
         headlines = get_news_headlines(category, limit=limit)
         markdown_content += "\n".join(headlines) + "\n\n"
-    with open("newsletter.md", "w") as file:
-        file.write(markdown_content)
     return markdown_content
 
-# Function to send the Markdown content via Brevo SMTP
+
+
+# Function to send the email via Brevo API
 def send_email(subject, body, recipient):
-    msg = MIMEMultipart()
-    msg['From'] = email_user
-    msg['To'] = recipient
-    msg['Subject'] = subject
-    
-    # Attach the body as plain text
-    msg.attach(MIMEText(body, 'plain'))
+    send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
+    to=[{"email": "dejvonwalker@gmail.com", "name": "Dejvon Walker"}],
+    sender={"email": "devonwalker@novaehstudios.com", "name": "Novaeh Studios"},
+    template_id=2,
+    params={"name": "John", "surname": "Doe"},
+    headers={"X-Mailin-custom": "custom_header_1:custom_value_1|custom_header_2:custom_value_2|custom_header_3:custom_value_3", "charset": "iso-8859-1"}
+)
 
     try:
-        # Brevo SMTP server setup
-        server = smtplib.SMTP("smtp-relay.sendinblue.com", 587)
-        server.starttls()
-        
-        # Login with Brevo email and API key as password
-        server.login(email_user, email_pass)  # Use API key as password
-        server.sendmail(email_user, recipient, msg.as_string())
-        server.quit()
-        print("Email sent successfully.")
-    except Exception as e:
-        print(f"Error sending email: {e}")
+        # Send the email using Brevo API
+        api_response = api_instance.send_transac_email(send_smtp_email)
+        pprint(api_response)
+    except ApiException as e:
+        print(f"Exception when calling SMTPApi->send_transac_email: {e}\n")
 
 # Function to create a Brevo email campaign
-def create_brevo_campaign(campaign_name, subject, sender_name, sender_email, html_content, list_ids, schedule_time):
-    # Configure Brevo client for the API
-    sib_api_v3_sdk.configuration.api_key['api-key'] = email_pass  # Use Brevo API key from environment
-    api_instance = sib_api_v3_sdk.EmailCampaignsApi()
+def create_brevo_campaign(campaign_name, subject, sender_name, sender_email, html_content, list_ids, schedule_time=None):
+    api_instance = sib_api_v3_sdk.EmailCampaignsApi(sib_api_v3_sdk.ApiClient(configuration))
 
     # Define the email campaign
     email_campaign = sib_api_v3_sdk.CreateEmailCampaign(
@@ -107,12 +98,12 @@ def create_brevo_campaign(campaign_name, subject, sender_name, sender_email, htm
         scheduled_at=schedule_time
     )
 
-    # Create the campaign
     try:
+        # Create the campaign
         api_response = api_instance.create_email_campaign(email_campaign)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling EmailCampaignsApi->create_email_campaign: %s\n" % e)
+        print(f"Exception when creating email campaign: {e}")
 
 # Main function to generate and send the newsletter
 def main():
@@ -129,13 +120,13 @@ def main():
     # Option to create a Brevo campaign
     create_campaign = input("Would you like to create a Brevo campaign? (yes/no): ").lower()
     if create_campaign == 'yes':
-        campaign_name = "Daily News Digest Campaign"
-        subject = "Your Daily News Digest"
-        sender_name = "Your Sender Name"
+        campaign_name = "Nathaniel's News"
+        subject = "Nathaniel's Daily News"
+        sender_name = "Novaeh Studios"
         sender_email = email_user
-        html_content = markdown_content  # Use the same content for the campaign
-        list_ids = [2, 7]  # Example list IDs
-        schedule_time = "2024-11-08 00:00:01"  # Example scheduled time
+        html_content = markdown_content.replace("\n", "<br>")  # Convert Markdown to basic HTML
+        list_ids = [2, 7]  # Example list IDs; replace with your actual list IDs
+        schedule_time = None  # Example: "2024-11-15 21:45:00" for scheduled sending
 
         create_brevo_campaign(campaign_name, subject, sender_name, sender_email, html_content, list_ids, schedule_time)
 
