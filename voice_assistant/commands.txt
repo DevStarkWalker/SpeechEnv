@@ -1,0 +1,4 @@
+cd D:\Projects\SpeechAssistant\SpeechEnv
+.\Scripts\activate
+cd voice_assistant
+.\run_script.ps1
